@@ -5,47 +5,47 @@
   <div class="top">
     <div class="facts">
       <table class="stat">
-        {{#if gm}}<tr><th>Printed for</th><td>the GM: everything, hidden items included</td></tr>{{/if}}
-        {{#if tradingAs}}<tr><th>Trading as</th><td>{{tradingAs}}</td></tr>{{/if}}
+        {{#if gm}}<tr><th>{{axpT "Printed for"}}</th><td>{{axpT "the GM: everything, hidden items included"}}</td></tr>{{/if}}
+        {{#if tradingAs}}<tr><th>{{axpT "Trading as"}}</th><td>{{tradingAs}}</td></tr>{{/if}}
       </table>
     </div>
     {{#if img}}<div class="portrait"><img src="{{img}}" alt=""></div>{{/if}}
   </div>
 
   {{#if gm}}
-  <div class="gm"><div class="gmh">GM: shop settings</div>
+  <div class="gm"><div class="gmh">{{axpT "GM: shop settings"}}</div>
     <table class="stat">{{#each settings}}<tr><th>{{this.[0]}}</th><td>{{this.[1]}}</td></tr>{{/each}}</table>
   </div>
   {{/if}}
 
-  <h2>{{#if gm}}Stock{{else}}For sale{{/if}}</h2>
+  <h2>{{#if gm}}{{axpT "Stock"}}{{else}}{{axpT "For sale"}}{{/if}}</h2>
   {{#if groups.length}}
   <table class="list">
-    {{#if gm}}<tr><th>Item</th><th class="n">Qty</th><th class="n">Value</th><th class="n">Price each</th><th class="n">Stock total</th></tr>
-    {{else}}<tr><th></th><th>Item</th><th class="n">Qty</th><th class="n">Price each</th></tr>{{/if}}
+    {{#if gm}}<tr><th>{{axpT "Item"}}</th><th class="n">{{axpT "Qty"}}</th><th class="n">{{axpT "Value"}}</th><th class="n">{{axpT "Price each"}}</th><th class="n">{{axpT "Stock total"}}</th></tr>
+    {{else}}<tr><th></th><th>{{axpT "Item"}}</th><th class="n">{{axpT "Qty"}}</th><th class="n">{{axpT "Price each"}}</th></tr>{{/if}}
     {{#each groups}}
       <tr class="group"><td colspan="{{../cols}}">{{label}}</td></tr>
       {{#each rows}}
       {{#if ../../gm}}
-      <tr><td>{{name}}{{#if shownAs}} <span class="muted">(shown as {{shownAs}})</span>{{/if}}{{#if hidden}} <span class="tag">hidden</span>{{/if}}{{#if tradeGoods}} <span class="tag">trade goods</span>{{/if}}</td>
+      <tr><td>{{name}}{{#if shownAs}} <span class="muted">{{axpT "(shown as {name})" name=shownAs}}</span>{{/if}}{{#if hidden}} <span class="tag">{{axpT "hidden"}}</span>{{/if}}{{#if tradeGoods}} <span class="tag">{{axpT "trade goods"}}</span>{{/if}}</td>
         <td class="n">{{qty}}</td><td class="n">{{value}}</td><td class="n">{{price}}</td><td class="n">{{total}}</td></tr>
       {{else}}
       <tr><td class="box"><span></span></td><td>{{name}}</td><td class="n">{{qty}}</td><td class="n">{{price}}</td></tr>
       {{/if}}
       {{/each}}
     {{/each}}
-    {{#if gm}}<tr class="total"><td colspan="4">Stock at the shop's prices</td><td class="n">{{stockTotal}}</td></tr>{{/if}}
+    {{#if gm}}<tr class="total"><td colspan="4">{{axpT "Stock at the shop's prices"}}</td><td class="n">{{stockTotal}}</td></tr>{{/if}}
   </table>
-  {{else}}<p class="muted">Nothing for sale.</p>{{/if}}
+  {{else}}<p class="muted">{{axpT "Nothing for sale."}}</p>{{/if}}
 
   {{#if log.length}}
-  <h2>Log (latest)</h2>
-  <table class="list"><tr><th>When</th><th>What</th></tr>
-    {{#each log}}<tr><td class="n">{{when}}</td><td>{{#if secret}}<span class="tag">secret</span> {{/if}}{{text}}</td></tr>{{/each}}
+  <h2>{{axpT "Log (latest)"}}</h2>
+  <table class="list"><tr><th>{{axpT "When"}}</th><th>{{axpT "What"}}</th></tr>
+    {{#each log}}<tr><td class="n">{{when}}</td><td>{{#if secret}}<span class="tag">{{axpT "secret"}}</span> {{/if}}{{text}}</td></tr>{{/each}}
   </table>
   {{/if}}
 
-  {{#if noteLines.length}}<h2>Notes</h2>{{#each noteLines}}<div class="notes"></div>{{/each}}{{/if}}
-  <p class="printed">Printed {{printedOn}} from Foundry VTT</p>
+  {{#if noteLines.length}}<h2>{{axpT "Notes"}}</h2>{{#each noteLines}}<div class="notes"></div>{{/each}}{{/if}}
+  <p class="printed">{{axpT "Printed {date} from Foundry VTT" date=printedOn}}</p>
 </section>
 </div>

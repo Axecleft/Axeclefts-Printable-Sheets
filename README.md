@@ -1,4 +1,4 @@
-# Axecleft's Printable Sheets (v1.14.0.0)
+# Axecleft's Printable Sheets (v1.14.2.0)
 
 Prints a 3.5 SRD (D35E) character, NPC or monster on paper, in one of three layouts:
 
@@ -37,6 +37,19 @@ These print in a layout of their own, picked by what the actor is (the Print but
   Monster Manual stat block with a box for its master, the SRD advancement row for the master's level, its special
   abilities, lines for tricks (animal companions) and notes. The Actors sidebar menu also offers the other layouts.
 
+## Spellbook (two columns)
+For spellcasters and psionic characters: every spell or power on the actor, printed like the Player's Handbook spell
+chapter, two columns per page. Click **Spellbook** in the sheet's title bar, or right-click the actor in the Actors sidebar
+and choose **Print: Spellbook (two columns)**.
+* Each spellbook (or power book) starts its own page, with its caster or manifester level, ability, save DC and power points.
+  Spells are grouped by level (0-level first).
+* Each entry has the PHB stat block, worked out for this caster: level, components (or display), casting time, range in
+  feet (close, medium and long from the caster level), target/area/effect and duration with per-level values filled in
+  (e.g. "7 rounds (1 round/level)"), the saving throw with its DC, spell or power resistance with the caster level check,
+  and power points. Then the full spell description.
+* Domain spells and the number prepared are tagged next to the name.
+* Macro: `game.modules.get("axeclefts-printable-sheets").api.printSpellbook(actor)`.
+
 ## Install
 Unzip into your Foundry `Data/modules` folder so you have `Data/modules/axeclefts-printable-sheets/module.json`,
 then enable **Axecleft's Printable Sheets** in your world.
@@ -69,7 +82,7 @@ and Weapon Specialization for damage). Situational bonuses from buffs or conditi
 Reload Foundry after editing.
 
 Macro use: `game.modules.get("axeclefts-printable-sheets").api.printActor(actor, "classic")` (or `"standard"`, `"monster"`,
-`"merchant"`, `"loot"`, `"hoard"`, `"trap"`, `"companion"`); `printTraps(actors)` prints several traps on one sheet.
+`"merchant"`, `"loot"`, `"hoard"`, `"trap"`, `"companion"`, `"spellbook"`); `printTraps(actors)` prints several traps on one sheet.
 The merchant, loot, hoard and trap layouts are `templates/shop-sheet.hbs`, `templates/contents-sheet.hbs` and
 `templates/trap-sheet.hbs` with `styles/ledger-sheet.css`; their values come from `scripts/special-data.js`.
 
@@ -81,6 +94,9 @@ The merchant, loot, hoard and trap layouts are `templates/shop-sheet.hbs`, `temp
 * Space/reach follow the size table: humanoid-shaped creatures (humanoids, giants, outsiders, fey) are tall, others long.
 * Special Attacks are picked from the actor's abilities by name (breath weapon, gaze, poison, improved grab, rend,
   spell-like abilities...); everything else goes under Special Qualities.
+* Advancement comes from D35E's advancement table (the one its Advance button uses).
+* The actor's notes print below the stat block: a bestiary creature's write-up, and the special abilities section the
+  Adventurers and Minions Creature Builder writes.
 * Ecology lines the system doesn't store print as blank lines to fill in.
 
 Blank boxes (deflection, magic and temporary save modifiers, eyes, hair, extra weapon and armor blocks) are left for writing in by hand.
@@ -90,6 +106,15 @@ Blank boxes (deflection, magic and temporary save modifiers, eyes, hair, extra w
   column gets a "Level N (continued)" title. Long lists start on a fresh page when that uses no more paper.
 
 ## Changelog
+### 1.14.2.0
+- **One link installs the whole suite.** Every Axecleft module now recommends all the others (Gemstones, Armory, Curios, Traps, Adventurers and Minions, Hoard Editor, Printable Sheets, VooDoo and the Tools Suite manager), so installing any one of them offers to install the rest.
+- Ships Axecleft's Tools 9.74: **Help on hover**. In a window that has a tour, turn on **Help on hover** in its ⋮ menu and rest the mouse on a part of the window to see that part's tour text.
+- Translation: every label, heading and worked-out line on the printed sheets, the notifications, the button and menu entries and the settings now go through the Axecleft's Tools translation files (`lang/<code>.json`, with `lang/template.json` listing every string). French draft included.
+- The module now ships Axecleft's Tools (the shared menu, welcome window and translation code) like the rest of the suite.
+### 1.14.1.0
+- New print: **Spellbook (two columns)**, Player's Handbook-style spell and power descriptions with save DCs, ranges, durations and per-level values worked out for the caster. From the new **Spellbook** button on the sheet or the Actors sidebar menu.
+- Monster Manual stat block: Treasure prints D35E's treasure setting (Standard, Double standard, None, or the coins, goods and items %), Organization what Adventurers and Minions' Creature Builder records, and Level Adjustment the race item's and templates' level adjustment.
+- Monster Manual stat block: Advancement prints D35E's advancement table ("6–8 HD (Large); 9–15 HD (Huge)", or "By character class"), and inline rolls in the notes ("[[/r 1d3]]") print as their dice.
 ### 1.14.0.0
 - First release, for Foundry 13 and 14 (a Foundry 11 version will follow in its own repository).
 - New prints, each picked by what the actor is: **merchants** (a player's price list; the GM's full stock and shop settings),

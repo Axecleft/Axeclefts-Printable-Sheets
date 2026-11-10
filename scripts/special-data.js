@@ -7,18 +7,19 @@
 // What a player gets is what they would see on the sheet: no hidden items, unidentified items by the name they show.
 // The other modules are read through their APIs when they're active (prices, hoard values, trap lines); without them the
 // values come from the actor's own data.
+import { t as tx } from "./i18n.js";
 
 const num = v => (typeof v === "number" ? v : Number(v) || 0);
 const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const getP = (o, path) => path.split(".").reduce((x, k) => x?.[k], o);
 const itemsOf = actor => [...(actor?.items ?? [])];
-const gpText = n => {
-  const v = Math.round(num(n) * 100) / 100;
-  return `${v.toLocaleString("en-US", { maximumFractionDigits: 2 })} gp`;
-};
+const locale = () => globalThis.game?.i18n?.lang || "en-US";
+const numText = (v, digits = 2) => { try { return Number(v).toLocaleString(locale(), { maximumFractionDigits: digits }); } catch (e) { return String(v); } };
+const gpText = n => tx("{n} gp", { n: numText(Math.round(num(n) * 100) / 100) });
+const lbText = n => tx("{n} lb.", { n: numText(Math.round(num(n) * 100) / 100) });
 const printedOn = () => new Date().toLocaleDateString();
 const ord = n => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
-const span = r => `${ord(r[0])}-${ord(r[1])}`;
+const span = r => tx("{fromOrd}-{toOrd}", { fromOrd: ord(r[0]), toOrd: ord(r[1]), from: r[0], to: r[1] });
 
 // ---------- what kind of actor ----------
 const SHOP_SHEET = "axecleft.AxecleftShopSheet";
@@ -42,7 +43,7 @@ export function kindOf(actor) {
 
 // ---------- items ----------
 const PHYSICAL = ["weapon", "equipment", "consumable", "loot", "valuable"];
-const GROUPS = [["weapon", "Weapons"], ["equipment", "Armor and gear"], ["consumable", "Consumables"], ["loot", "Goods and loot"]];
+const GROUPS = [["weapon", /*t*/"Weapons"], ["equipment", /*t*/"Armor and gear"], ["consumable", /*t*/"Consumables"], ["loot", /*t*/"Goods and loot"]];
 const qtyOf = i => { const q = i.system?.quantity; return q == null || q === "" ? 1 : Math.max(0, num(q)); };
 const unidentified = i => i.system?.identified === false;
 const shownName = i => (unidentified(i) && i.system?.unidentified?.name ? i.system.unidentified.name : i.name);
@@ -58,7 +59,7 @@ const weightOf = i => num(i.system?.weight);
 /** The items on show, by group: [{ label, rows: [...] }]. */
 function grouped(items, row) {
   return GROUPS.map(([type, label]) => ({
-    label,
+    label: tx(label),
     rows: items.filter(i => i.type === type || (type === "loot" && i.type === "valuable"))
       .sort((a, b) => shownName(a).localeCompare(shownName(b))).map(row)
   })).filter(g => g.rows.length);
@@ -67,13 +68,15 @@ const onShow = (actor, gm) => itemsOf(actor).filter(i => PHYSICAL.includes(i.typ
 
 // ---------- coins ----------
 const COINS = ["pp", "gp", "sp", "cp"];
+// The coins' short names, for the translation files
+const COIN_WORDS = [/*t*/"pp", /*t*/"gp", /*t*/"sp", /*t*/"cp"];
 const COIN_GP = { pp: 10, gp: 1, sp: 0.1, cp: 0.01 };
 function coins(actor) {
   const c = actor?.system?.currency ?? {}, alt = actor?.system?.altCurrency ?? {};
-  const list = COINS.map(k => ({ coin: k, n: num(c[k]) + num(alt[k]) })).map(x => ({ ...x, count: x.n.toLocaleString("en-US") }));
-  const total = list.reduce((n, x) => n + x.n * COIN_GP[x.coin], 0);
+  const list = COINS.map(k => ({ coin: tx(k), n: num(c[k]) + num(alt[k]) })).map(x => ({ ...x, count: numText(x.n, 0) }));
+  const total = list.reduce((n, x, i) => n + x.n * COIN_GP[COINS[i]], 0);
   const weight = COINS.reduce((n, k) => n + num(c[k]), 0) / 50; // carried coins: 50 to the pound (weightless ones weigh nothing)
-  return { list, total, weight, text: list.filter(x => x.n).map(x => `${x.count} ${x.coin}`).join(", ") || "none" };
+  return { list, total, weight, text: list.filter(x => x.n).map(x => `${x.count} ${x.coin}`).join(", ") || tx("none") };
 }
 
 // ---------- the Shop's settings (Axecleft's Shop when loaded, else its saved flags) ----------
@@ -104,16 +107,16 @@ function lootSettings(actor) {
     opened: o.opened !== false, split: !!o.split, log: Array.isArray(o.log) ? o.log : []
   };
 }
-const SECURITY = { careless: "careless / distracted (Spot -4, DCs -2)", crowded: "crowded / busy (Spot -2)", watchful: "watchful owner (Spot +4)",
-  guards: "guards on duty (Spot +5)", animal: "guard animal (Spot +3)", locked: "goods locked away (shoplifting DC +10)",
-  strongbox: "coin kept secure (pickpocketing DC +5)", warded: "magically warded (shoplifting: Spot +10)" };
-const HAGGLE = { dip: "Diplomacy", int: "Intimidate", blf: "Bluff" };
-const CHAT = { public: "shown in chat for everyone", gm: "shown to the GM only", none: "not shown in chat" };
-const LOCKS = { simple: "very simple lock", average: "average lock", good: "good lock", amazing: "amazing lock" };
-const BOXES = { small: "small chest", treasure: "treasure chest", custom: "container" };
-const SAVES = { ref: "Reflex", fort: "Fortitude", will: "Will", none: "no save" };
+const SECURITY = { careless: /*t*/"careless / distracted (Spot -4, DCs -2)", crowded: /*t*/"crowded / busy (Spot -2)", watchful: /*t*/"watchful owner (Spot +4)",
+  guards: /*t*/"guards on duty (Spot +5)", animal: /*t*/"guard animal (Spot +3)", locked: /*t*/"goods locked away (shoplifting DC +10)",
+  strongbox: /*t*/"coin kept secure (pickpocketing DC +5)", warded: /*t*/"magically warded (shoplifting: Spot +10)" };
+const HAGGLE = { dip: /*t*/"Diplomacy", int: /*t*/"Intimidate", blf: /*t*/"Bluff" };
+const CHAT = { public: /*t*/"shown in chat for everyone", gm: /*t*/"shown to the GM only", none: /*t*/"not shown in chat" };
+const LOCKS = { simple: /*t*/"very simple lock", average: /*t*/"average lock", good: /*t*/"good lock", amazing: /*t*/"amazing lock" };
+const BOXES = { small: /*t*/"small chest", treasure: /*t*/"treasure chest", custom: /*t*/"container" };
+const SAVES = { ref: /*t*/"Reflex", fort: /*t*/"Fortitude", will: /*t*/"Will", none: /*t*/"no save" };
 const actorName = id => (id && globalThis.game?.actors?.get?.(id)?.name) || "?";
-const openTo = actor => (num(actor?.ownership?.default) >= 1 ? "all players" : "players set in Ownership");
+const openTo = actor => (num(actor?.ownership?.default) >= 1 ? tx("all players") : tx("players set in Ownership"));
 function logRows(L, gm) {
   const when = ms => { try { return new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
   return L.log.filter(e => gm || !e.secret).slice(-25).reverse().map(e => ({ when: when(e.t), text: e.text, secret: !!e.secret }));
@@ -136,24 +139,24 @@ export function buildShopData(actor, { gm = !!globalThis.game?.user?.isGM } = {}
       hidden: gm && isHidden(i), tradeGoods: gm && isTradeGoods(i), qty: q, value: gpText(valueOf(i)), price: gpText(each), total: gpText(each * q) };
   });
   const purse = coins(actor), me = gm ? null : myCharacter();
-  const skills = Object.entries(HAGGLE).filter(([k]) => s.skills?.[k]).map(([, v]) => v).join(", ");
-  const haggled = Object.values(s.haggles ?? {}).map(h => `${h.name ?? "?"} ${h.refused ? "refused" : `${num(h.pct) >= 0 ? "+" : ""}${num(h.pct)}%`}`).join(", ");
+  const skills = Object.entries(HAGGLE).filter(([k]) => s.skills?.[k]).map(([, v]) => tx(v)).join(", ");
+  const haggled = Object.values(s.haggles ?? {}).map(h => `${h.name ?? "?"} ${h.refused ? tx("refused") : `${num(h.pct) >= 0 ? "+" : ""}${num(h.pct)}%`}`).join(", ");
   return {
     name: actor.name, gm,
-    subLine: [s.shopName && !actor.name.includes(s.shopName) ? s.shopName : "", gm ? `sells at ${s.sell}%, buys at ${s.buy}%` : `it buys at ${s.buy}% of value`, s.haggle ? "haggles" : ""].filter(Boolean).join(" · "),
-    tradingAs: me ? `${me.name} (purse ${gpText(coins(me).total)})` : "",
+    subLine: [s.shopName && !actor.name.includes(s.shopName) ? s.shopName : "", gm ? tx("sells at {sell}%, buys at {buy}%", { sell: s.sell, buy: s.buy }) : tx("it buys at {buy}% of value", { buy: s.buy }), s.haggle ? tx("haggles") : ""].filter(Boolean).join(" · "),
+    tradingAs: me ? tx("{name} (purse {gp})", { name: me.name, gp: gpText(coins(me).total) }) : "",
     groups, stockTotal: gpText(stock), cols: gm ? 5 : 4,
     settings: gm ? [
-      ["Sells at / buys at", `${s.sell}% / ${s.buy}% of value`],
-      ["Trade goods", `${s.tradeSell}% / ${s.tradeBuy}%${s.tradeOwn ? "" : " (world rule)"}`],
-      ["Open to", openTo(actor)],
-      ["Trades", CHAT[s.chat] ?? s.chat],
-      ["Haggling", s.haggle ? `${skills || "no skills ticked"} (you approve each)` : "not allowed"],
-      ...(haggled ? [["Haggled", haggled]] : []),
-      ["Pickpocketing", s.steal ? "allowed (you decide each)" : "not allowed"],
-      ["Security", (s.security ?? []).map(k => SECURITY[k] ?? k).join("; ") || "none"],
-      ...(Object.keys(s.locked ?? {}).length ? [["Locked out", Object.values(s.locked).join(", ")]] : []),
-      ["Purse", `${purse.text} (${gpText(purse.total)})`]
+      [tx("Sells at / buys at"), tx("{sell}% / {buy}% of value", { sell: s.sell, buy: s.buy })],
+      [tx("Trade goods"), `${s.tradeSell}% / ${s.tradeBuy}%${s.tradeOwn ? "" : ` ${tx("(world rule)")}`}`],
+      [tx("Open to"), openTo(actor)],
+      [tx("Trades"), CHAT[s.chat] ? tx(CHAT[s.chat]) : s.chat],
+      [tx("Haggling"), s.haggle ? tx("{skills} (you approve each)", { skills: skills || tx("no skills ticked") }) : tx("not allowed")],
+      ...(haggled ? [[tx("Haggled"), haggled]] : []),
+      [tx("Pickpocketing"), s.steal ? tx("allowed (you decide each)") : tx("not allowed")],
+      [tx("Security"), (s.security ?? []).map(k => (SECURITY[k] ? tx(SECURITY[k]) : k)).join("; ") || tx("none")],
+      ...(Object.keys(s.locked ?? {}).length ? [[tx("Locked out"), Object.values(s.locked).join(", ")]] : []),
+      [tx("Purse"), `${purse.text} (${gpText(purse.total)})`]
     ] : [],
     log: gm ? logRows(lootSettings(actor), true) : [],
     noteLines: gm ? [] : Array.from({ length: 5 }),
@@ -166,34 +169,35 @@ export function buildLootData(actor, { gm = !!globalThis.game?.user?.isGM } = {}
   const s = shopSettings(actor), L = lootSettings(actor), axe = !!shopFlags(actor);
   const storage = s.mode === "storage";
   const closed = axe && (L.lock.locked || !L.opened);
-  const status = !axe ? "" : L.lock.broken ? "broken open" : L.lock.locked ? "locked" : !L.opened ? "closed" : "open";
+  const status = !axe ? "" : L.lock.broken ? tx("broken open") : L.lock.locked ? tx("locked") : !L.opened ? tx("closed") : tx("open");
   const showContents = gm || !closed;
   let total = 0, weight = 0;
   const groups = showContents ? grouped(onShow(actor, gm), i => {
     const q = qtyOf(i), v = valueOf(i);
     total += v * q; weight += weightOf(i) * q;
     return { name: gm ? i.name : shownName(i), shownAs: gm && unidentified(i) && shownName(i) !== i.name ? shownName(i) : "", hidden: gm && isHidden(i),
-      qty: q, value: gpText(v), total: gpText(v * q), weight: `${Math.round(weightOf(i) * q * 100) / 100} lb.` };
+      qty: q, value: gpText(v), total: gpText(v * q), weight: lbText(weightOf(i) * q) };
   }) : [];
   const purse = coins(actor);
   const tr = L.trap, trActor = tr.actor ? globalThis.game?.actors?.get?.(tr.actor) : null;
-  const trapLine = !tr.armed ? "none" : trActor
-    ? `${trActor.name} (trap actor): Search DC ${num(trActor.system?.details?.findDC) || tr.searchDc}, Disable Device DC ${num(trActor.system?.details?.disarmDC) || tr.disableDc}`
-    : `${tr.name || "trap"}: Search DC ${tr.searchDc}, Disable Device DC ${tr.disableDc}; ${SAVES[tr.save] ?? tr.save}${tr.save !== "none" ? ` DC ${tr.saveDc}` : ""}${tr.damage ? `, ${tr.damage}${tr.half ? " (half on a save)" : ""}` : ""}${tr.poison ? `; ${tr.poison}` : ""}`;
+  const dcs = (search, disable) => tx("Search DC {search}, Disable Device DC {disable}", { search, disable });
+  const trapLine = !tr.armed ? tx("none") : trActor
+    ? `${tx("{name} (trap actor)", { name: trActor.name })}: ${dcs(num(trActor.system?.details?.findDC) || tr.searchDc, num(trActor.system?.details?.disarmDC) || tr.disableDc)}`
+    : `${tr.name || tx("trap")}: ${dcs(tr.searchDc, tr.disableDc)}; ${SAVES[tr.save] ? tx(SAVES[tr.save]) : tr.save}${tr.save !== "none" ? ` ${tx("DC {dc}", { dc: tr.saveDc })}` : ""}${tr.damage ? `, ${tr.damage}${tr.half ? ` ${tx("(half on a save)")}` : ""}` : ""}${tr.poison ? `; ${tr.poison}` : ""}`;
   const lk = L.lock;
   return {
-    name: actor.name, gm, kindLabel: storage ? "Party storage" : "Loot", status,
-    closedNote: !gm && closed ? `${actor.name} is ${status}: what's inside isn't shown until it's opened.` : "",
-    coins: showContents ? purse.list : [], coinsTotal: gm ? `${gpText(purse.total)}; ${Math.round(purse.weight * 100) / 100} lb.` : "",
+    name: actor.name, gm, kindLabel: storage ? tx("Party storage") : tx("Loot"), status,
+    closedNote: !gm && closed ? tx("{name} is {status}: what's inside isn't shown until it's opened.", { name: actor.name, status }) : "",
+    coins: showContents ? purse.list : [], coinsTotal: gm ? `${gpText(purse.total)}; ${lbText(purse.weight)}` : "",
     groups, cols: gm ? 5 : 3,
-    totals: gm ? [["Items", gpText(total), `${Math.round(weight * 100) / 100} lb.`], ["Coins", gpText(purse.total), `${Math.round(purse.weight * 100) / 100} lb.`],
-      ["All of it", gpText(total + purse.total), `${Math.round((weight + purse.weight) * 100) / 100} lb.`]] : [],
+    totals: gm ? [[tx("Items"), gpText(total), lbText(weight)], [tx("Coins"), gpText(purse.total), lbText(purse.weight)],
+      [tx("All of it"), gpText(total + purse.total), lbText(weight + purse.weight)]] : [],
     settings: gm && axe ? [
-      ["Open to", openTo(actor)], ["Taken and put in", CHAT[s.chat] ?? s.chat], ["Splitting coins", L.split ? "players can split them" : "the GM splits them"],
-      ["Container", `${BOXES[lk.box] ?? lk.box}: hardness ${lk.hardness}, ${lk.hp} hp, Break DC ${lk.breakDc}${lk.broken ? " (broken)" : ""}`],
-      ["Lock", lk.locked ? `locked; ${LOCKS[lk.quality] ?? "lock"}, Open Lock DC ${num(lk.dc) + (lk.arcane ? 10 : 0)}${lk.arcane ? " (arcane lock +10)" : ""}${lk.key ? `; key: ${lk.key}` : ""}` : "unlocked"],
-      ["Trap", trapLine + (tr.armed && tr.found?.length ? `. Found by ${tr.found.map(actorName).join(", ")}` : tr.armed ? ". Found by nobody" : "")],
-      ["Players see it", status]
+      [tx("Open to"), openTo(actor)], [tx("Taken and put in"), CHAT[s.chat] ? tx(CHAT[s.chat]) : s.chat], [tx("Splitting coins"), L.split ? tx("players can split them") : tx("the GM splits them")],
+      [tx("Container"), `${BOXES[lk.box] ? tx(BOXES[lk.box]) : lk.box}: ${tx("hardness {hardness}, {hp} hp, Break DC {dc}", { hardness: lk.hardness, hp: lk.hp, dc: lk.breakDc })}${lk.broken ? ` ${tx("(broken)")}` : ""}`],
+      [tx("Lock"), lk.locked ? `${tx("locked")}; ${tx(LOCKS[lk.quality] ?? /*t*/"lock")}, ${tx("Open Lock DC {dc}", { dc: num(lk.dc) + (lk.arcane ? 10 : 0) })}${lk.arcane ? ` ${tx("(arcane lock +10)")}` : ""}${lk.key ? `; ${tx("key: {key}", { key: lk.key })}` : ""}` : tx("unlocked")],
+      [tx("Trap"), trapLine + (tr.armed && tr.found?.length ? `. ${tx("Found by {names}", { names: tr.found.map(actorName).join(", ") })}` : tr.armed ? `. ${tx("Found by nobody")}` : "")],
+      [tx("Players see it"), status]
     ] : [],
     log: gm || storage ? logRows(L, gm) : [],
     takenBy: !gm,
@@ -214,7 +218,7 @@ export function buildHoardData(actor, { gm = !!globalThis.game?.user?.isGM } = {
     if (g) goods += v * q; else items += v * q;
     weight += weightOf(i) * q;
     return { name: gm ? i.name : shownName(i), shownAs: gm && unidentified(i) && shownName(i) !== i.name ? shownName(i) : "", hidden: gm && isHidden(i),
-      qty: q, value: gpText(v), total: gpText(v * q), sells: gpText(v * q * (g ? 1 : sellPct / 100)), weight: `${Math.round(weightOf(i) * q * 100) / 100} lb.` };
+      qty: q, value: gpText(v), total: gpText(v * q), sells: gpText(v * q * (g ? 1 : sellPct / 100)), weight: lbText(weightOf(i) * q) };
   });
   const purse = coins(actor);
   let v = { coins: purse.total, goods, items, total: purse.total + goods + items };
@@ -227,17 +231,17 @@ export function buildHoardData(actor, { gm = !!globalThis.game?.user?.isGM } = {
   const trap = info.trap ? (globalThis.fromUuidSync?.(info.trap) ?? null) : null;
   const scene = [...(globalThis.game?.scenes ?? [])].filter(sc => [...(sc.tokens ?? [])].some(tk => tk.actorId === actor.id)).map(sc => sc.name).join(", ");
   return {
-    name: actor.name, gm, kindLabel: gm ? "Hoard" : "Treasure found",
-    coins: purse.list, coinsTotal: gm ? `${gpText(v.coins)}; ${Math.round(num(w.coins) * 100) / 100} lb.` : "",
+    name: actor.name, gm, kindLabel: gm ? tx("Hoard") : tx("Treasure found"),
+    coins: purse.list, coinsTotal: gm ? `${gpText(v.coins)}; ${lbText(w.coins)}` : "",
     groups, cols: gm ? 6 : 2, hoard: true,
-    totals: gm ? [["Coins / goods / items", `${gpText(v.coins)} / ${gpText(v.goods)} / ${gpText(v.items)}`, ""], ["The hoard", gpText(v.total), `sells for ${gpText(sells)}; ${Math.round(num(w.total) * 100) / 100} lb.`]] : [],
+    totals: gm ? [[tx("Coins / goods / items"), `${gpText(v.coins)} / ${gpText(v.goods)} / ${gpText(v.items)}`, ""], [tx("The hoard"), gpText(v.total), `${tx("sells for {gp}", { gp: gpText(sells) })}; ${lbText(w.total)}`]] : [],
     settings: gm ? [
-      ["Encounter level", el ? `EL ${el}: SRD treasure ${gpText(target)}` : "not set"],
-      ["This hoard", el ? `${gpText(v.total)} (${v.total >= target ? "+" : "-"}${gpText(Math.abs(v.total - target))} ${v.total >= target ? "over" : "under"})` : gpText(v.total)],
-      ["Sells for", `${gpText(sells)} (items at ${sellPct}%)`],
-      ["Trap", trap ? `${trap.name}: Search DC ${num(trap.system?.details?.findDC) || "?"}, Disable Device DC ${num(trap.system?.details?.disarmDC) || "?"}` : "none"],
-      ...(scene ? [["On the scene", scene]] : []),
-      ["Players can loot it", num(actor.ownership?.default) >= 2 ? "yes" : "no"]
+      [tx("Encounter level"), el ? tx("EL {el}: SRD treasure {gp}", { el, gp: gpText(target) }) : tx("not set")],
+      [tx("This hoard"), el ? `${gpText(v.total)} (${v.total >= target ? tx("{gp} over", { gp: `+${gpText(Math.abs(v.total - target))}` }) : tx("{gp} under", { gp: `-${gpText(Math.abs(v.total - target))}` })})` : gpText(v.total)],
+      [tx("Sells for"), tx("{gp} (items at {pct}%)", { gp: gpText(sells), pct: sellPct })],
+      [tx("Trap"), trap ? `${trap.name}: ${tx("Search DC {search}, Disable Device DC {disable}", { search: num(trap.system?.details?.findDC) || "?", disable: num(trap.system?.details?.disarmDC) || "?" })}` : tx("none")],
+      ...(scene ? [[tx("On the scene"), scene]] : []),
+      [tx("Players can loot it"), num(actor.ownership?.default) >= 2 ? tx("yes") : tx("no")]
     ] : [],
     log: [], shareLines: gm ? [] : Array.from({ length: 6 }),
     printedOn: printedOn()
@@ -258,13 +262,13 @@ export async function buildTrapBlock(actor) {
     if (facts) text = (await facts(actor))?.text ?? null;
   } catch (e) { /* not a trap the Traps module knows */ }
   const priceNote = notes.find(n => PRICE_LINE.test(n));
-  const price = priceNote ? priceNote.replace(/^market price\s*[-:–]\s*/i, "Market Price: ").replace(/^cost\s*[-:–]\s*/i, "Cost: ") : "";
+  const price = priceNote ? priceNote.replace(/^market price\s*[-:–]\s*/i, `${tx("Market Price:")} `).replace(/^cost\s*[-:–]\s*/i, `${tx("Cost:")} `) : "";
   let line;
   if (text) line = text.replace(new RegExp(`^${actor.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*`, "i"), "");
   else {
     const trigger = notes.find(n => TRIGGER_LINE.test(n));
     const rest = notes.filter(n => n !== trigger && !SAVE_LINE.test(n) && !PRICE_LINE.test(n));
-    line = [`CR ${cr || "?"}`, trigger ? trigger.toLowerCase() : "", ...rest, `Search DC ${num(det.findDC) || "?"}`, `Disable Device DC ${num(det.disarmDC) || "?"}`].filter(Boolean).join("; ");
+    line = [tx("CR {cr}", { cr: cr || "?" }), trigger ? trigger.toLowerCase() : "", ...rest, tx("Search DC {dc}", { dc: num(det.findDC) || "?" }), tx("Disable Device DC {dc}", { dc: num(det.disarmDC) || "?" })].filter(Boolean).join("; ");
   }
   if (!/\.$/.test(line)) line += ".";
   // The trap's poisons and diseases in full, from its items, when they say more than the stat line
@@ -276,36 +280,38 @@ export async function buildTrapBlock(actor) {
 export async function buildTrapData(actors, { title = "" } = {}) {
   const traps = [];
   for (const a of actors) traps.push(await buildTrapBlock(a));
-  return { title: title || (traps.length === 1 ? traps[0].name : "Traps"), subLine: traps.length > 1 ? `${traps.length} traps` : "", traps, printedOn: printedOn() };
+  return { title: title || (traps.length === 1 ? traps[0].name : tx("Traps")), subLine: traps.length > 1 ? tx("{n} traps", { n: traps.length }) : "", traps, printedOn: printedOn() };
 }
 
 // ---------- companions (familiar, animal companion, paladin's mount, psicrystal) ----------
 // SRD advancement by the master's level for the companion's kind (D35E's minion groups)
-const ANIMAL = [[1, 2, "+0", "+0", "+0", 1, "Link, share spells"], [3, 5, "+2", "+2", "+1", 2, "Evasion"], [6, 8, "+4", "+4", "+2", 3, "Devotion"],
-  [9, 11, "+6", "+6", "+3", 4, "Multiattack"], [12, 14, "+8", "+8", "+4", 5, ""], [15, 17, "+10", "+10", "+5", 6, "Improved evasion"], [18, 20, "+12", "+12", "+6", 7, ""]];
-const FAMILIAR = [[1, 2, "+1", 6, "Alertness, improved evasion, share spells, empathic link"], [3, 4, "+2", 7, "Deliver touch spells"], [5, 6, "+3", 8, "Speak with master"],
-  [7, 8, "+4", 9, "Speak with animals of its kind"], [9, 10, "+5", 10, ""], [11, 12, "+6", 11, "Spell resistance"], [13, 14, "+7", 12, "Scry on familiar"],
+const ANIMAL = [[1, 2, "+0", "+0", "+0", 1, /*t*/"Link, share spells"], [3, 5, "+2", "+2", "+1", 2, /*t*/"Evasion"], [6, 8, "+4", "+4", "+2", 3, /*t*/"Devotion"],
+  [9, 11, "+6", "+6", "+3", 4, /*t*/"Multiattack"], [12, 14, "+8", "+8", "+4", 5, ""], [15, 17, "+10", "+10", "+5", 6, /*t*/"Improved evasion"], [18, 20, "+12", "+12", "+6", 7, ""]];
+const FAMILIAR = [[1, 2, "+1", 6, /*t*/"Alertness, improved evasion, share spells, empathic link"], [3, 4, "+2", 7, /*t*/"Deliver touch spells"], [5, 6, "+3", 8, /*t*/"Speak with master"],
+  [7, 8, "+4", 9, /*t*/"Speak with animals of its kind"], [9, 10, "+5", 10, ""], [11, 12, "+6", 11, /*t*/"Spell resistance"], [13, 14, "+7", 12, /*t*/"Scry on familiar"],
   [15, 16, "+8", 13, ""], [17, 18, "+9", 14, ""], [19, 20, "+10", 15, ""]];
-const MOUNT = [[5, 7, "+2", "+4", "+1", 6, "Empathic link, improved evasion, share spells, share saving throws"], [8, 10, "+4", "+6", "+2", 7, "Improved speed"],
-  [11, 14, "+6", "+8", "+3", 8, "Command creatures of its kind"], [15, 20, "+8", "+10", "+4", 9, "Spell resistance"]];
+const MOUNT = [[5, 7, "+2", "+4", "+1", 6, /*t*/"Empathic link, improved evasion, share spells, share saving throws"], [8, 10, "+4", "+6", "+2", 7, /*t*/"Improved speed"],
+  [11, 14, "+6", "+8", "+3", 8, /*t*/"Command creatures of its kind"], [15, 20, "+8", "+10", "+4", 9, /*t*/"Spell resistance"]];
 const FEATURES = {
-  "link": "The master handles the animal as a free action (push it as a move action) and gets +4 on wild empathy and Handle Animal checks with it.",
-  "share spells": "A spell the master casts on himself can also affect the companion within 5 ft.; spells with a target of \"You\" can be cast on it.",
-  "evasion": "No damage on a successful Reflex save for half.",
-  "devotion": "+4 morale bonus on Will saves against enchantment spells and effects.",
-  "multiattack": "Gains Multiattack as a bonus feat if it has three or more natural attacks (or a second attack with its primary natural weapon at -5).",
-  "improved evasion": "No damage on a successful Reflex save, half damage on a failed one.",
-  "alertness": "While the familiar is within arm's reach, the master has the Alertness feat.",
-  "empathic link": "Telepathic link to 1 mile: they share emotions, not senses.",
-  "deliver touch spells": "The familiar delivers the master's touch spells for him.",
-  "speak with master": "The familiar and the master talk in a language others can't understand without magic.",
-  "speak with animals of its kind": "The familiar can talk with animals of about its kind.",
-  "spell resistance": "Spell resistance equal to the master's level + 5.",
-  "scry on familiar": "Once a day the master can scry on the familiar (as the scrying spell).",
-  "share saving throws": "The mount uses its own base save or the paladin's, whichever is higher.",
-  "improved speed": "+10 ft. to the mount's speed.",
-  "command creatures of its kind": "Once a day per two paladin levels, the mount can command other animals of its kind (as command)."
+  "link": /*t*/"The master handles the animal as a free action (push it as a move action) and gets +4 on wild empathy and Handle Animal checks with it.",
+  "share spells": /*t*/"A spell the master casts on himself can also affect the companion within 5 ft.; spells with a target of \"You\" can be cast on it.",
+  "evasion": /*t*/"No damage on a successful Reflex save for half.",
+  "devotion": /*t*/"+4 morale bonus on Will saves against enchantment spells and effects.",
+  "multiattack": /*t*/"Gains Multiattack as a bonus feat if it has three or more natural attacks (or a second attack with its primary natural weapon at -5).",
+  "improved evasion": /*t*/"No damage on a successful Reflex save, half damage on a failed one.",
+  "alertness": /*t*/"While the familiar is within arm's reach, the master has the Alertness feat.",
+  "empathic link": /*t*/"Telepathic link to 1 mile: they share emotions, not senses.",
+  "deliver touch spells": /*t*/"The familiar delivers the master's touch spells for him.",
+  "speak with master": /*t*/"The familiar and the master talk in a language others can't understand without magic.",
+  "speak with animals of its kind": /*t*/"The familiar can talk with animals of about its kind.",
+  "spell resistance": /*t*/"Spell resistance equal to the master's level + 5.",
+  "scry on familiar": /*t*/"Once a day the master can scry on the familiar (as the scrying spell).",
+  "share saving throws": /*t*/"The mount uses its own base save or the paladin's, whichever is higher.",
+  "improved speed": /*t*/"+10 ft. to the mount's speed.",
+  "command creatures of its kind": /*t*/"Once a day per two paladin levels, the mount can command other animals of its kind (as command)."
 };
+// The features' names as printed (capitalized), for the translation files
+const FEATURE_NAMES = [/*t*/"Link", /*t*/"Share spells", /*t*/"Evasion", /*t*/"Devotion", /*t*/"Multiattack", /*t*/"Improved evasion", /*t*/"Alertness", /*t*/"Empathic link", /*t*/"Deliver touch spells", /*t*/"Speak with master", /*t*/"Speak with animals of its kind", /*t*/"Spell resistance", /*t*/"Scry on familiar", /*t*/"Share saving throws", /*t*/"Improved speed", /*t*/"Command creatures of its kind"];
 function featureList(text) { return String(text).split(/,\s*/).map(s => s.trim()).filter(Boolean); }
 /** The companion box's data, or null. */
 export function companionData(actor) {
@@ -317,30 +323,31 @@ export function companionData(actor) {
   const masterName = master?.name ?? actor.system?.master?.name ?? "";
   if (!mc && !masterName) return null;
   const masterClasses = master ? itemsOf(master).filter(i => i.type === "class" && i.system?.classType !== "minion").map(c => `${c.name} ${num(c.system?.levels)}`).join(" / ") : "";
-  const kind = group === "animalcompanion" ? "Animal companion" : group === "wizard" ? "Familiar" : group === "paladin" ? "Special mount" : group === "psion" ? "Psicrystal" : (mc?.name ?? "Companion");
+  const kind = group === "animalcompanion" ? tx("Animal companion") : group === "wizard" ? tx("Familiar") : group === "paladin" ? tx("Special mount") : group === "psion" ? tx("Psicrystal") : (mc?.name ?? tx("Companion"));
   const row = list => list.filter(r => level >= r[0] && level <= r[1]).at(-1) ?? null;
   const upTo = (list, idx) => list.filter(r => level >= r[0]).flatMap(r => featureList(r[idx]));
   let table = null, features = [], tricks = null;
   if (group === "animalcompanion") {
     const r = row(ANIMAL);
-    if (r) table = { head: ["Class level", "Bonus HD", "Natural armor adj.", "Str/Dex adj.", "Bonus tricks", "Special"], cells: [span(r), r[2], r[3], r[4], r[5], r[6] || "-"] };
+    if (r) table = { head: [/*t*/"Class level", /*t*/"Bonus HD", /*t*/"Natural armor adj.", /*t*/"Str/Dex adj.", /*t*/"Bonus tricks", /*t*/"Special"].map(h => tx(h)), cells: [span(r), r[2], r[3], r[4], r[5], r[6] ? tx(r[6]) : "-"] };
     features = upTo(ANIMAL, 6);
     const int = num(actor.system?.abilities?.int?.total ?? actor.system?.abilities?.int?.value);
     const count = (int >= 3 ? 0 : 3 * Math.max(1, int)) + (r ? r[5] : 0);
-    tricks = { label: int >= 3 ? `Tricks known (Int ${int}: as many as it learns, plus ${r ? r[5] : 0} bonus)` : `Tricks known (${count}: ${3 * Math.max(1, int)} as an animal of Int ${int || 1}, plus ${r ? r[5] : 0} bonus)`,
+    tricks = { label: int >= 3 ? tx("Tricks known (Int {int}: as many as it learns, plus {bonus} bonus)", { int, bonus: r ? r[5] : 0 }) : tx("Tricks known ({count}: {base} as an animal of Int {int}, plus {bonus} bonus)", { count, base: 3 * Math.max(1, int), int: int || 1, bonus: r ? r[5] : 0 }),
       lines: Array.from({ length: Math.max(count, 6) }) };
   } else if (group === "wizard") {
     const r = row(FAMILIAR);
-    if (r) table = { head: ["Master level", "Natural armor adj.", "Int", "Special"], cells: [span(r), r[2], r[3], r[4] || "-"] };
+    if (r) table = { head: [/*t*/"Master level", /*t*/"Natural armor adj.", /*t*/"Int", /*t*/"Special"].map(h => tx(h)), cells: [span(r), r[2], r[3], r[4] ? tx(r[4]) : "-"] };
     features = upTo(FAMILIAR, 4);
   } else if (group === "paladin") {
     const r = row(MOUNT);
-    if (r) table = { head: ["Paladin level", "Bonus HD", "Natural armor adj.", "Str adj.", "Int", "Special"], cells: [span(r), r[2], r[3], r[4], r[5], r[6] || "-"] };
+    if (r) table = { head: [/*t*/"Paladin level", /*t*/"Bonus HD", /*t*/"Natural armor adj.", /*t*/"Str adj.", /*t*/"Int", /*t*/"Special"].map(h => tx(h)), cells: [span(r), r[2], r[3], r[4], r[5], r[6] ? tx(r[6]) : "-"] };
     features = upTo(MOUNT, 6);
   }
-  const notes = features.map(f => ({ name: f.charAt(0).toUpperCase() + f.slice(1), text: FEATURES[f.toLowerCase()] ?? "" })).filter(f => f.text);
+  // Each feature named in its own words: the English list is split, so each part has its own entry in the translation files
+  const notes = features.map(f => { const name = f.charAt(0).toUpperCase() + f.slice(1); return { name: tx(name), text: FEATURES[f.toLowerCase()] ? tx(FEATURES[f.toLowerCase()]) : "" }; }).filter(f => f.text);
   return {
-    title: `${kind} of ${masterName || "?"}${masterClasses ? ` (${masterClasses})` : level ? ` (level ${level})` : ""}`,
+    title: `${tx("{kind} of {master}", { kind, master: masterName || "?" })}${masterClasses ? ` (${masterClasses})` : level ? ` ${tx("(level {n})", { n: level })}` : ""}`,
     table, notes, tricks, noteLines: Array.from({ length: 2 })
   };
 }
@@ -350,5 +357,5 @@ export function companionBoxHTML(c) {
   const table = c.table ? `<table class="adv"><tr>${c.table.head.map(h => `<th>${esc(h)}</th>`).join("")}</tr><tr>${c.table.cells.map(x => `<td>${esc(x)}</td>`).join("")}</tr></table>` : "";
   const notes = c.notes.length ? `<dl>${c.notes.map(n => `<dt>${esc(n.name)}:</dt><dd> ${esc(n.text)}</dd>`).join("")}</dl>` : "";
   const tricks = c.tricks ? `<b>${esc(c.tricks.label)}</b><div class="tricks">${c.tricks.lines.map(() => "<div></div>").join("")}</div>` : "";
-  return `<div class="comp"><div class="ch">${esc(c.title)}</div>${table}${notes}${tricks}<div class="cnotes"><b>Notes</b></div>${c.noteLines.map(() => "<div class=\"nline\"></div>").join("")}</div>`;
+  return `<div class="comp"><div class="ch">${esc(c.title)}</div>${table}${notes}${tricks}<div class="cnotes"><b>${esc(tx("Notes"))}</b></div>${c.noteLines.map(() => "<div class=\"nline\"></div>").join("")}</div>`;
 }

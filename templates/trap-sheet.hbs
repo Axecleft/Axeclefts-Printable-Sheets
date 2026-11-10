@@ -6,9 +6,9 @@
   <div class="trap">
     <div class="tl"><b>{{name}}:</b> {{line}}{{#if price}} <i>{{price}}</i>{{/if}}</div>
     {{#if hasExtra}}<div class="extra">{{#each extra}}<p>{{this}}</p>{{/each}}{{#if description}}<p><i>{{description}}</i></p>{{/if}}</div>{{/if}}
-    <div class="ticks"><span>Found</span><span>Disabled</span><span>Sprung</span><span>Reset</span></div>
+    <div class="ticks"><span>{{axpT "Found"}}</span><span>{{axpT "Disabled"}}</span><span>{{axpT "Sprung"}}</span><span>{{axpT "Reset"}}</span></div>
   </div>
   {{/each}}
-  <p class="printed">Printed {{printedOn}} from Foundry VTT</p>
+  <p class="printed">{{axpT "Printed {date} from Foundry VTT" date=printedOn}}</p>
 </section>
 </div>

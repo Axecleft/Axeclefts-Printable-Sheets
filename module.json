@@ -1,11 +1,11 @@
 {
   "id": "axeclefts-printable-sheets",
   "title": "Axecleft's Printable Sheets",
-  "description": "Print 3.5 SRD (D35E) actors on paper: characters as a classic 3.5 or eTools-style character sheet or a Monster Manual-style stat block; merchants as a price list (the GM's copy with the full stock and shop settings); loot piles, party storage and Hoard Editor hoards as a contents list (the GM's with values, lock and trap); traps as DMG-style trap blocks; familiars, animal companions and special mounts as a stat block with their master and advancement. Adds a Print button to actor sheets and print entries to the Actors sidebar menu.",
-  "version": "1.14.0.0",
+  "description": "Print 3.5 SRD (D35E) actors on paper: characters as a classic 3.5 or eTools-style character sheet or a Monster Manual-style stat block; merchants as a price list (the GM's copy with the full stock and shop settings); loot piles, party storage and Hoard Editor hoards as a contents list (the GM's with values, lock and trap); traps as DMG-style trap blocks; familiars, animal companions and special mounts as a stat block with their master and advancement; spellbooks and power books as two-column, Player's Handbook-style spell descriptions worked out for the caster. Adds a Print button to actor sheets and print entries to the Actors sidebar menu.",
+  "version": "1.14.2.0",
   "url": "https://github.com/Axecleft/Axeclefts-Printable-Sheets",
   "manifest": "https://github.com/Axecleft/Axeclefts-Printable-Sheets/releases/latest/download/module.json",
-  "download": "https://github.com/Axecleft/Axeclefts-Printable-Sheets/releases/download/1.14.0.0/module.zip",
+  "download": "https://github.com/Axecleft/Axeclefts-Printable-Sheets/releases/download/1.14.2.0/module.zip",
   "authors": [
     {
       "name": "Axecleft"
@@ -22,9 +22,60 @@
         "type": "system",
         "compatibility": {}
       }
+    ],
+    "recommends": [
+      {
+        "id": "axecleft-gemstones",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Axeclefts-Gemstones/releases/latest/download/module.json",
+        "reason": "Gems, art objects and jewelry, with the Treasure Generator and the Merchant Generator"
+      },
+      {
+        "id": "axeclefts-armory",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Armory/releases/latest/download/module.json",
+        "reason": "Magic weapons and armor, the Forge and crafting"
+      },
+      {
+        "id": "axeclefts-curios",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Curios/releases/latest/download/module.json",
+        "reason": "Potions, scrolls, wands, rings and wondrous items, and crafting"
+      },
+      {
+        "id": "traps-and-poisons",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Traps-and-Poisons/releases/latest/download/module.json",
+        "reason": "Traps, poisons and diseases, with trap kits and crafting"
+      },
+      {
+        "id": "axeclefts-adventurers-minions",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Axeclefts-Adventurers-Minions/releases/latest/download/module.json",
+        "reason": "Build characters, NPCs, creatures and encounters"
+      },
+      {
+        "id": "axeclefts-hoards",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Axeclefts-Hoard-Editor/releases/latest/download/module.json",
+        "reason": "Build, save and share out treasure hoards (a Hoards tab in the Treasure Generator)"
+      },
+      {
+        "id": "axeclefts-voodoo",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Axeclefts-VooDoo/releases/latest/download/module.json",
+        "reason": "A character sheet for your players' phones"
+      },
+      {
+        "id": "axeclefts-tool-suite",
+        "type": "module",
+        "manifest": "https://github.com/Axecleft/Axecleft-s-Tools-Suite/releases/latest/download/module.json",
+        "reason": "Turn the suite's modules on and off and check them for updates"
+      }
     ]
   },
   "esmodules": [
+    "scripts/axecleft-tools.js",
     "scripts/main.js"
   ],
   "languages": []

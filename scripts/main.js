@@ -1,26 +1,31 @@
 // Axecleft's Printable Sheets: print a 3.5 SRD (D35E) actor as a paper sheet
 // (classic 3.5 character sheet, eTools-style character sheet, or Monster Manual-style stat block), and merchants, loot
-// piles, party storage, hoards, traps and companions in layouts of their own (special-data.js).
+// piles, party storage, hoards, traps and companions in layouts of their own (special-data.js), and a two-column
+// spellbook in the Player's Handbook layout (spellbook-data.js).
 // Adds a "Print" button to actor sheet headers and print entries to the Actors sidebar menu.
 import { buildSheetData } from "./sheet-data.js";
 import { buildStatBlock } from "./monster-data.js";
+import { buildSpellbookData, hasSpells } from "./spellbook-data.js";
+import { t as tx, MODULE_ID } from "./i18n.js";
 import { kindOf, buildShopData, buildLootData, buildHoardData, buildTrapData, companionData, companionBoxHTML } from "./special-data.js";
 
-const MODULE_ID = "axeclefts-printable-sheets";
 const LAYOUTS = {
-  classic:  { label: "Classic 3.5 sheet", template: `modules/${MODULE_ID}/templates/classic-sheet.hbs`,  css: `modules/${MODULE_ID}/styles/classic-sheet.css` },
-  standard: { label: "eTools-style sheet", template: `modules/${MODULE_ID}/templates/standard-sheet.hbs`, css: `modules/${MODULE_ID}/styles/print-sheet.css` },
-  monster:  { label: "Monster Manual stat block", template: `modules/${MODULE_ID}/templates/monster-sheet.hbs`, css: `modules/${MODULE_ID}/styles/monster-sheet.css`, build: buildStatBlock }
+  classic:  { label: /*t*/"Classic 3.5 sheet", template: `modules/${MODULE_ID}/templates/classic-sheet.hbs`,  css: `modules/${MODULE_ID}/styles/classic-sheet.css` },
+  standard: { label: /*t*/"eTools-style sheet", template: `modules/${MODULE_ID}/templates/standard-sheet.hbs`, css: `modules/${MODULE_ID}/styles/print-sheet.css` },
+  monster:  { label: /*t*/"Monster Manual stat block", template: `modules/${MODULE_ID}/templates/monster-sheet.hbs`, css: `modules/${MODULE_ID}/styles/monster-sheet.css`, build: buildStatBlock }
 };
 // The layouts for actors that aren't characters: chosen by what the actor is (not offered in the settings)
 const LEDGER = `modules/${MODULE_ID}/styles/ledger-sheet.css`;
 const SPECIAL = {
-  merchant:  { label: "Merchant price list", template: `modules/${MODULE_ID}/templates/shop-sheet.hbs`, css: LEDGER, doc: buildShopData, limited: true },
-  loot:      { label: "Loot / party storage contents", template: `modules/${MODULE_ID}/templates/contents-sheet.hbs`, css: LEDGER, doc: buildLootData, limited: true },
-  hoard:     { label: "Hoard", template: `modules/${MODULE_ID}/templates/contents-sheet.hbs`, css: LEDGER, doc: buildHoardData },
-  trap:      { label: "Trap", template: `modules/${MODULE_ID}/templates/trap-sheet.hbs`, css: LEDGER, doc: actor => buildTrapData([actor]) },
-  companion: { label: "Companion stat block", template: `modules/${MODULE_ID}/templates/monster-sheet.hbs`, css: `modules/${MODULE_ID}/styles/monster-sheet.css`,
-    doc: (actor, opts) => ({ ...buildStatBlock(actor.toObject(false), opts), companionBox: companionBoxHTML(companionData(actor)) }) }
+  merchant:  { label: /*t*/"Merchant price list", template: `modules/${MODULE_ID}/templates/shop-sheet.hbs`, css: LEDGER, doc: buildShopData, limited: true },
+  loot:      { label: /*t*/"Loot / party storage contents", template: `modules/${MODULE_ID}/templates/contents-sheet.hbs`, css: LEDGER, doc: buildLootData, limited: true },
+  hoard:     { label: /*t*/"Hoard", template: `modules/${MODULE_ID}/templates/contents-sheet.hbs`, css: LEDGER, doc: buildHoardData },
+  trap:      { label: /*t*/"Trap", template: `modules/${MODULE_ID}/templates/trap-sheet.hbs`, css: LEDGER, doc: actor => buildTrapData([actor]) },
+  companion: { label: /*t*/"Companion stat block", template: `modules/${MODULE_ID}/templates/monster-sheet.hbs`, css: `modules/${MODULE_ID}/styles/monster-sheet.css`,
+    doc: (actor, opts) => ({ ...buildStatBlock(actor.toObject(false), opts), companionBox: companionBoxHTML(companionData(actor)) }) },
+  // Any caster: every spell or power with its Player's Handbook stat block worked out for the caster, then its description
+  spellbook: { label: /*t*/"Spellbook (two columns)", template: `modules/${MODULE_ID}/templates/spellbook-sheet.hbs`, css: `modules/${MODULE_ID}/styles/spellbook-sheet.css`,
+    doc: actor => buildSpellbookData(actor), any: hasSpells }
 };
 const layoutOf = key => LAYOUTS[key] ?? SPECIAL[key] ?? LAYOUTS.classic;
 const defaultLayout = actor => kindOf(actor) ?? game.settings.get(MODULE_ID, actor?.type === "npc" ? "npcLayout" : "layout");
@@ -46,9 +51,9 @@ export async function printActor(actor, layout = defaultLayout(actor)) {
   const L = layoutOf(layout);
   // Players trade and loot with Limited permission; everything else needs Observer
   if (!actor.testUserPermission(game.user, L.limited ? "LIMITED" : "OBSERVER")) {
-    return ui.notifications.warn(`You need at least ${L.limited ? "Limited" : "Observer"} permission to print ${actor.name}.`);
+    return ui.notifications.warn(L.limited ? tx("You need at least Limited permission to print {name}.", { name: actor.name }) : tx("You need at least Observer permission to print {name}.", { name: actor.name }));
   }
-  ui.notifications.info(`Preparing ${actor.name} for printing...`);
+  ui.notifications.info(tx("Preparing {name} for printing...", { name: actor.name }));
   try {
     const opts = { skillNames: skillLabels() };
     const data = L.doc ? await L.doc(actor, opts) : (L.build ?? buildSheetData)(actor.toObject(false), opts);
@@ -56,16 +61,16 @@ export async function printActor(actor, layout = defaultLayout(actor)) {
     await printHTML(actor.name, L, data);
   } catch (err) {
     console.error(`${MODULE_ID} |`, err);
-    ui.notifications.error(`Could not build the printable sheet: ${err.message}`);
+    ui.notifications.error(tx("Could not build the printable sheet: {error}", { error: err.message }));
   }
 }
 
 /** Print several traps on one sheet (a room's or a dungeon's), as DMG-style trap blocks. */
 export async function printTraps(actors, { title = "" } = {}) {
   const list = [...(actors ?? [])].filter(a => a?.type === "trap" && a.testUserPermission(game.user, "OBSERVER"));
-  if (!list.length) return ui.notifications.warn("No traps to print.");
-  try { await printHTML(title || "Traps", SPECIAL.trap, await buildTrapData(list, { title })); }
-  catch (err) { console.error(`${MODULE_ID} |`, err); ui.notifications.error(`Could not build the printable sheet: ${err.message}`); }
+  if (!list.length) return ui.notifications.warn(tx("No traps to print."));
+  try { await printHTML(title || tx("Traps"), SPECIAL.trap, await buildTrapData(list, { title })); }
+  catch (err) { console.error(`${MODULE_ID} |`, err); ui.notifications.error(tx("Could not build the printable sheet: {error}", { error: err.message })); }
 }
 
 /** Render a layout's template and print it. */
@@ -108,12 +113,14 @@ async function printHTML(name, L, data) {
 // ---------- actor sheet header button (ApplicationV1 and ApplicationV2 sheets) ----------
 Hooks.on("getActorSheetHeaderButtons", (app, buttons) => {
   if (!app.actor) return;
-  buttons.unshift({ label: "Print", class: "axe-print-sheet", icon: "fas fa-print", onclick: () => printActor(app.actor) });
+  if (hasSpells(app.actor)) buttons.unshift({ label: tx("Spellbook"), class: "axe-print-spellbook", icon: "fas fa-book", onclick: () => printActor(app.actor, "spellbook") });
+  buttons.unshift({ label: tx("Print"), class: "axe-print-sheet", icon: "fas fa-print", onclick: () => printActor(app.actor) });
 });
 Hooks.on("getHeaderControlsApplicationV2", (app, controls) => {
   const actor = app.document?.documentName === "Actor" ? app.document : null;
   if (!actor) return;
-  controls.unshift({ icon: "fas fa-print", label: "Print Sheet", action: "axePrintSheet", onClick: () => printActor(actor) });
+  if (hasSpells(actor)) controls.unshift({ icon: "fas fa-book", label: tx("Print Spellbook"), action: "axePrintSpellbook", onClick: () => printActor(actor, "spellbook") });
+  controls.unshift({ icon: "fas fa-print", label: tx("Print Sheet"), action: "axePrintSheet", onClick: () => printActor(actor) });
 });
 
 // ---------- Actors sidebar right-click entry (v12 and v13+ hook names) ----------
@@ -121,13 +128,13 @@ Hooks.on("getHeaderControlsApplicationV2", (app, controls) => {
 // characters and other NPCs every layout.
 function contextEntries() {
   const own = Object.entries(SPECIAL).map(([key, L]) => ({
-    name: `Print: ${L.label}`,
+    name: tx("Print: {layout}", { layout: tx(L.label) }),
     icon: '<i class="fas fa-print"></i>',
-    condition: li => kindOf(actorFromLi(li)) === key,
+    condition: li => { const a = actorFromLi(li); return L.any ? !!a && L.any(a) : kindOf(a) === key; },
     callback: li => printActor(actorFromLi(li), key)
   }));
   const plain = Object.entries(LAYOUTS).map(([key, L]) => ({
-    name: `Print: ${L.label}`,
+    name: tx("Print: {layout}", { layout: tx(L.label) }),
     icon: '<i class="fas fa-print"></i>',
     condition: li => { const a = actorFromLi(li); return !!a && a.type !== "trap" && [null, "companion"].includes(kindOf(a)); },
     callback: li => printActor(actorFromLi(li), key)
@@ -144,20 +151,22 @@ Hooks.on("getActorContextOptions", (_app, options) => options.push(...contextEnt
 Hooks.on("getActorDirectoryEntryContext", (_html, options) => options.push(...contextEntries()));
 
 Hooks.once("init", () => {
+  // {{axpT "English text" name=value}} in the templates: the text in the world's language ({{{axpT …}}} for texts holding <br>)
+  Handlebars.registerHelper("axpT", (text, options) => tx(text, options?.hash));
   game.settings.register(MODULE_ID, "layout", {
-    name: "Printed sheet layout",
-    hint: "Layout used by the Print button on player characters. The Actors sidebar menu offers every layout.",
+    name: /*t*/"Printed sheet layout",
+    hint: /*t*/"Layout used by the Print button on player characters. The Actors sidebar menu offers every layout.",
     scope: "client", config: true, type: String, default: "classic",
     choices: Object.fromEntries(Object.entries(LAYOUTS).map(([k, L]) => [k, L.label]))
   });
   game.settings.register(MODULE_ID, "npcLayout", {
-    name: "Printed NPC / monster layout",
-    hint: "Layout used by the Print button on NPCs and monsters.",
+    name: /*t*/"Printed NPC / monster layout",
+    hint: /*t*/"Layout used by the Print button on NPCs and monsters.",
     scope: "client", config: true, type: String, default: "monster",
     choices: Object.fromEntries(Object.entries(LAYOUTS).map(([k, L]) => [k, L.label]))
   });
 });
 
 Hooks.once("ready", () => {
-  game.modules.get(MODULE_ID).api = { printActor, printTraps, kindOf, layouts: [...Object.keys(LAYOUTS), ...Object.keys(SPECIAL)] };
+  game.modules.get(MODULE_ID).api = { printActor, printTraps, kindOf, printSpellbook: actor => printActor(actor, "spellbook"), layouts: [...Object.keys(LAYOUTS), ...Object.keys(SPECIAL)] };
 });

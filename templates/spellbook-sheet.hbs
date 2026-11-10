@@ -1,0 +1,29 @@
+<div class="book">
+  <header class="bh">
+    <h1>{{name}}</h1>
+    <div class="sub">{{subtitle}}</div>
+  </header>
+  {{#each books}}
+  <section class="sbook">
+    <h2 class="btitle">{{title}}</h2>
+    {{#if facts.length}}<div class="facts">{{#each facts}}<span>{{this}}</span>{{/each}}</div>{{/if}}
+    <div class="cols">
+      {{#each levels}}
+      <h3 class="lvl">{{title}}</h3>
+      {{#each spells}}
+      <article class="spell">
+        <div class="head">
+          <h4>{{name}}{{#if domain}}<span class="tag">{{axpT "Domain"}}</span>{{/if}}{{#if prepared}}<span class="tag">{{axpT "Prepared ×{n}" n=prepared}}</span>{{/if}}{{#if clNote}}<span class="tag">{{clNote}}</span>{{/if}}</h4>
+          {{#if school}}<div class="school">{{school}}</div>{{/if}}
+          <div class="stats">{{#each lines}}<div><b>{{label}}:</b> {{value}}</div>{{/each}}</div>
+        </div>
+        <div class="desc">{{{description}}}</div>
+      </article>
+      {{/each}}
+      {{/each}}
+    </div>
+  </section>
+  {{/each}}
+  {{#unless hasSpells}}<p class="none">{{axpT "This character has no spells or powers."}}</p>{{/unless}}
+  <div class="printed">{{axpT "Printed {date} · Axecleft's Printable Sheets" date=printed}}</div>
+</div>

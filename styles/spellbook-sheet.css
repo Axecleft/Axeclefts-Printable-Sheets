@@ -1,0 +1,31 @@
+/* Spellbook: two columns, each spell laid out as in the Player's Handbook (name, school, stat block, description). */
+@page { margin: 0.5in; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #fff; color: #000; }
+body { font: 8.6pt/1.32 Georgia, "Times New Roman", serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.book { width: 100%; max-width: 7.5in; margin: 0 auto; }
+.bh h1 { font: normal 20pt Arial, Helvetica, sans-serif; text-transform: uppercase; letter-spacing: 1px; text-align: right; margin: 0; padding-bottom: 2px; border-bottom: 3px solid #000; }
+.bh .sub { text-align: right; font-style: italic; margin-bottom: 6px; }
+.sbook + .sbook { break-before: page; }
+h2.btitle { font: bold 13pt Arial, Helvetica, sans-serif; text-transform: uppercase; margin: 8px 0 2px; }
+.facts { display: flex; flex-wrap: wrap; gap: 2px 16px; font: 8pt Arial, sans-serif; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 0; margin-bottom: 8px; }
+.cols { column-count: 2; column-fill: balance; column-gap: 0.28in; column-rule: 0.5pt solid #999; }
+h3.lvl { font: bold 9.5pt Arial, Helvetica, sans-serif; text-transform: uppercase; letter-spacing: .5px; background: #000; color: #fff; padding: 2px 5px; margin: 0 0 6px; break-after: avoid; column-span: none; }
+.spell { margin: 0 0 9px; }
+.spell .head { break-inside: avoid; }
+.spell h4 { font: bold 10.5pt Georgia, "Times New Roman", serif; font-variant: small-caps; letter-spacing: .3px; margin: 0; border-bottom: 1px solid #000; break-after: avoid; }
+.spell .school { margin: 1px 0 2px; }
+.spell .stats { margin: 0 0 3px; }
+.spell .stats div { padding-left: 1.1em; text-indent: -1.1em; }
+.spell .desc { text-align: justify; hyphens: auto; }
+.spell .desc p { margin: 0; text-indent: 1em; }
+.spell .desc p:first-child { text-indent: 0; }
+.spell .desc table { width: 100%; border-collapse: collapse; margin: 3px 0; font-size: 7.5pt; break-inside: avoid; }
+.spell .desc th, .spell .desc td { border-bottom: 0.5pt solid #999; padding: 1px 3px; text-align: left; vertical-align: top; }
+.spell .desc th { font-family: Arial, sans-serif; }
+.spell .desc h1, .spell .desc h2, .spell .desc h3, .spell .desc h4, .spell .desc h5 { font: bold 8.6pt Georgia, serif; margin: 4px 0 1px; }
+.spell .desc ul, .spell .desc ol { margin: 2px 0; padding-left: 1.3em; }
+.tag { font: bold 6pt Arial, sans-serif; border: 0.75pt solid #000; padding: 0 3px; margin-left: 5px; text-transform: uppercase; font-variant: normal; letter-spacing: 0; vertical-align: 1.5pt; }
+.none { font-style: italic; }
+.printed { font: 6pt Arial, sans-serif; color: #555; text-align: right; margin-top: 10px; }
+@media screen { body { background: #888; } .book { background: #fff; padding: 0.5in; margin: 12px auto; box-shadow: 0 0 6px #000; max-width: 8.5in; min-height: 11in; } }
